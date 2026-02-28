@@ -66,7 +66,7 @@ def test_final_equity_matches_manual_calculation():
     quantity = 10
 
     strategy = BuyOnDayOneSellOnLastDay("TEST", quantity, total_days=5)
-    portfolio, total_trades = run_backtest(strategy, data, starting_capital, commission)
+    portfolio, total_trades, _ = run_backtest(strategy, data, starting_capital, commission)
 
     # BUY: cost = 100 * 10 * 1.001 = 1001.0  →  cash = 8999.0
     # SELL: proceeds = 120 * 10 * 0.999 = 1198.8  →  cash = 10197.8
@@ -80,7 +80,7 @@ def test_equity_curve_has_one_entry_per_day():
     prices = [100.0, 105.0, 110.0]
     data = make_data(prices)
     strategy = NoLookaheadStrategy()
-    portfolio, _ = run_backtest(strategy, data, starting_capital=10_000.0, commission_pct=0.0)
+    portfolio, _, _tl = run_backtest(strategy, data, starting_capital=10_000.0, commission_pct=0.0)
     assert len(portfolio.equity_curve) == len(prices)
 
 
@@ -102,7 +102,7 @@ def test_rejected_order_not_counted_as_trade():
             return [Order("TEST", "BUY", 999_999)]  # will overdraw cash
 
     data = make_data([100.0, 105.0])
-    _, total_trades = run_backtest(
+    _, total_trades, _tl = run_backtest(
         AlwaysBuy(), data, starting_capital=1_000.0, commission_pct=0.0
     )
     assert total_trades == 0

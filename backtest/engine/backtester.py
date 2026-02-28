@@ -9,17 +9,21 @@ def run_backtest(
     data: pd.DataFrame,
     starting_capital: float,
     commission_pct: float,
-) -> tuple[Portfolio, int]:
+) -> tuple[Portfolio, int, list[dict]]:
     """
     Run a backtest over the full date range of `data`.
 
     On each day, the strategy receives only history up to and including that day
     (no lookahead bias). Orders are executed at that day's Close price.
 
-    Returns the final Portfolio (with equity_curve populated) and total executed trade count.
+    Returns:
+        portfolio   - final Portfolio with equity_curve populated
+        total_trades - count of all accepted orders
+        trade_log   - list of dicts with keys: side, price, quantity, ticker, date
     """
     portfolio = Portfolio(cash=starting_capital)
     total_trades = 0
+    trade_log: list[dict] = []
 
     for i in range(len(data)):
         today = data.index[i]
@@ -32,9 +36,16 @@ def run_backtest(
         for order in orders:
             if portfolio.execute_order(order, close_price, commission_pct):
                 total_trades += 1
+                trade_log.append({
+                    "side": order.side,
+                    "price": close_price,
+                    "quantity": order.quantity,
+                    "ticker": order.ticker,
+                    "date": today,
+                })
 
         # Price all current positions at today's close
         prices = {ticker: close_price for ticker in portfolio.positions}
         portfolio.log_equity(today, prices)
 
-    return portfolio, total_trades
+    return portfolio, total_trades, trade_log
