@@ -1,0 +1,7 @@
+# Runtime dependencies
+pandas
+yfinance
+matplotlib
+
+# Dev dependencies
+pytest
