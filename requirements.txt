@@ -1,5 +1,6 @@
 # Runtime dependencies
 pandas
+numpy
 yfinance
 matplotlib
 

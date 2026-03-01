@@ -28,6 +28,12 @@ python main.py --strategy sma_crossover --ticker AAPL --start 2020-01-01 --end 2
 
 # Mean reversion on SPY with custom capital
 python main.py --strategy mean_reversion --ticker SPY --start 2018-01-01 --end 2023-12-31 --capital 50000
+
+# Add Monte Carlo simulation (10,000 resamples by default)
+python main.py --strategy sma_crossover --ticker AAPL --start 2020-01-01 --end 2023-12-31 --monte-carlo
+
+# Monte Carlo with a custom simulation count
+python main.py --strategy sma_crossover --ticker AAPL --start 2020-01-01 --end 2023-12-31 --monte-carlo --mc-sims 50000
 ```
 
 ## Sample Output
@@ -55,6 +61,27 @@ Charts saved to  output/equity_curve.png  and  output/drawdown.png
 Two PNG charts are saved to `output/`:
 - `equity_curve.png` — strategy equity vs buy-and-hold benchmark over time
 - `drawdown.png` — percentage drawdown from peak as a filled area chart
+
+## Monte Carlo Simulation
+
+Pass `--monte-carlo` to run a bootstrap robustness test after the backtest. It resamples the strategy's daily returns 10,000 times (configurable via `--mc-sims`) to reveal the distribution of outcomes had market conditions been slightly different.
+
+```
+Monte Carlo Simulation (10,000 runs)
+====================================================
+                             5th %    Median    95th %
+  Total Return               -3.67%     +5.30%    +15.44%
+  Sharpe Ratio               -0.323     0.484     1.332
+  Max Drawdown               -8.38%     -4.33%     -2.44%
+----------------------------------------------------
+  Probability of Loss         16.7%
+====================================================
+Chart saved to   output/monte_carlo.png
+```
+
+A third chart is saved to `output/monte_carlo.png` — a histogram of all simulated total returns, with a dashed red line at breakeven and a solid navy line marking the actual backtest result.
+
+The key number is **Probability of Loss**: the fraction of resampled scenarios that ended in a loss. A strategy with a positive return but a high P(loss) got lucky with the specific sequence of days in the backtest period; a low P(loss) suggests the edge is more robust.
 
 ## Strategies
 
