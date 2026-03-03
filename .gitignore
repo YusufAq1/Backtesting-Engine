@@ -24,7 +24,7 @@ htmlcov/
 .cache/
 output/
 CLAUDE.md
-WALKTHROUGH.md
+
 
 # IDE
 .vscode/
