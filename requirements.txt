@@ -6,3 +6,6 @@ matplotlib
 
 # Dev dependencies
 pytest
+
+# For sentiment strategy generation, also install:
+# pip install -r requirements-sentiment.txt

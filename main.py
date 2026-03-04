@@ -13,13 +13,35 @@ from backtest.metrics.performance import compute_metrics
 from backtest.visualize.plots import plot_monte_carlo, plot_results
 
 
-def _build_strategy(name: str, ticker: str):
+def _build_strategy(name: str, ticker: str, sentiment_csv: str | None = None,
+                    buy_threshold: float = 0.20, sell_threshold: float = -0.10,
+                    smoothing_window: int = 5):
     if name == "sma_crossover":
         from backtest.strategies.sma_crossover import SMACrossover
         return SMACrossover(ticker=ticker)
     if name == "mean_reversion":
         from backtest.strategies.mean_reversion import MeanReversion
         return MeanReversion(ticker=ticker)
+    if name == "sentiment":
+        from backtest.strategies.sentiment_strategy import SentimentStrategy
+        if not sentiment_csv:
+            print(
+                "Error: --sentiment-csv is required when using the sentiment strategy.\n\n"
+                "To generate a sentiment CSV:\n"
+                "    python scripts/generate_sentiment.py "
+                "--ticker AAPL --keyword Apple --start 2025-05-01 --end 2025-05-31\n\n"
+                "Then run the backtest:\n"
+                "    python main.py --strategy sentiment --ticker AAPL "
+                "--sentiment-csv sentiment_data/AAPL_sentiment.csv"
+            )
+            raise SystemExit(1)
+        return SentimentStrategy(
+            ticker=ticker,
+            sentiment_csv=sentiment_csv,
+            buy_threshold=buy_threshold,
+            sell_threshold=sell_threshold,
+            smoothing_window=smoothing_window,
+        )
     raise ValueError(f"Unknown strategy: {name}")
 
 
@@ -78,7 +100,8 @@ def _print_monte_carlo(mc: dict) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a backtest against historical data.")
-    parser.add_argument("--strategy", choices=["sma_crossover", "mean_reversion"],
+    parser.add_argument("--strategy",
+                        choices=["sma_crossover", "mean_reversion", "sentiment"],
                         default="sma_crossover")
     parser.add_argument("--ticker",   default=DEFAULT_TICKER)
     parser.add_argument("--start",    default=DEFAULT_START)
@@ -88,12 +111,27 @@ def main() -> None:
                         help="Run Monte Carlo simulation (bootstrap resampling) to assess strategy robustness")
     parser.add_argument("--mc-sims", type=int, default=10_000,
                         help="Number of Monte Carlo simulations (default: 10000)")
+    # Sentiment strategy flags
+    parser.add_argument("--sentiment-csv", type=str, default=None,
+                        help="Path to sentiment CSV (required when --strategy=sentiment)")
+    parser.add_argument("--buy-threshold", type=float, default=0.20,
+                        help="Sentiment score above which to buy (default: 0.20)")
+    parser.add_argument("--sell-threshold", type=float, default=-0.10,
+                        help="Sentiment score below which to sell (default: -0.10)")
+    parser.add_argument("--smoothing-window", type=int, default=5,
+                        help="Rolling average window for sentiment smoothing (default: 5)")
     args = parser.parse_args()
 
     print(f"Fetching data for {args.ticker}  ({args.start} -> {args.end}) ...")
     data = fetch_data(args.ticker, args.start, args.end)
 
-    strategy = _build_strategy(args.strategy, args.ticker)
+    strategy = _build_strategy(
+        args.strategy, args.ticker,
+        sentiment_csv=args.sentiment_csv,
+        buy_threshold=args.buy_threshold,
+        sell_threshold=args.sell_threshold,
+        smoothing_window=args.smoothing_window,
+    )
     print(f"Running {args.strategy} ...")
 
     portfolio, total_trades, trade_log = run_backtest(
